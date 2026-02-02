@@ -102,3 +102,36 @@ def ImpVol_surface_3d(
 # ImpVol_surface_3d(xx, yy, params_index=19999)
 
 
+# %%
+import torch
+import torch.nn as nn
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# scale_x, scale_y = StandardScaler(), StandardScaler() 
+
+# 工具函数——数据标准化
+def x_transform(train_data, test_data, scale_x): 
+    return scale_x.fit_transform(train_data), scale_x.transform(test_data)
+
+def x_inv_transform(x, scale_x):
+    return scale_x.inverse_transform(x)
+
+def y_transform(train_data, test_data, scale_y): 
+    return scale_y.fit_transform(train_data), scale_y.transform(test_data)
+
+def y_inv_transform(y, scale_y):
+    return scale_y.inverse_transform(y)
+
+
+# # 训练集的 Upper and Lower Bounds
+# upper_bound = np.array([0.16,4,-0.1,0.5])
+# lower_bound = np.array([0.01,0.3,-0.95,0.025])
+
+def params_scaler(x, upper_bound, lower_bound): 
+    return (x - (upper_bound+lower_bound) / 2 ) * 2 / (upper_bound-lower_bound)
+
+def params_inv_scaler(x, upper_bound, lower_bound):
+    return x * (upper_bound-lower_bound) / 2 + (upper_bound+lower_bound) / 2
+
+
