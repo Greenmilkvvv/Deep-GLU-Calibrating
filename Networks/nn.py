@@ -272,7 +272,8 @@ class MGLU(nn.Linear):
         # 注意: 这里bias=False, 因为门控和值流通常不需要独立的偏置, 或者后续统一加. 
         super(MGLU, self).__init__(in_features, out_features, False)
         self.register_parameter(
-            "mask", nn.Parameter(0.01 * torch.randn(out_features, in_features), requires_grad=True)
+            "mask", 
+            nn.Parameter(0.01 * torch.randn(out_features, in_features, dtype=torch.float64), requires_grad=True)
         )
 
     def ste_mask(self, soft_mask):
