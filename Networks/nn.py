@@ -325,7 +325,7 @@ class MGLUBlock(nn.Module):
         return output + residual
 
 
-class NN_pricing_SwiGLU(nn.Module):
+class NN_pricing_MGLU(nn.Module):
     """基于MGLU的定价网络"""
     def __init__(self, hyperparams):
         super().__init__()
