@@ -273,7 +273,10 @@ class MGLU(nn.Linear):
         super(MGLU, self).__init__(in_features, out_features, False)
         self.register_parameter(
             "mask", 
-            nn.Parameter(0.01 * torch.randn(out_features, in_features, dtype=torch.float64), requires_grad=True)
+            nn.Parameter( 
+                0.01 * torch.randn(out_features, in_features, dtype=torch.float64), 
+                requires_grad=True
+            )
         )
 
     def ste_mask(self, soft_mask):
@@ -298,11 +301,11 @@ class MGLUBlock(nn.Module):
         # 核心: MGLU投影拆分器
         self.mglu_projection = MGLU(input_dim, output_dim)
         # 可选的偏置（也可不加, 或让MGLU支持bias）
-        self.bias = nn.Parameter(torch.zeros(output_dim)) if True else None
+        self.bias = nn.Parameter(torch.zeros(output_dim, dtype=torch.float64)) if True else None
         # 门控激活函数, 默认使用Swish
         self.gate_activation = lambda g: g * torch.sigmoid(g) if use_swish else torch.sigmoid(g)
         # 层归一化, 用于稳定训练（如果做残差连接, 维度需匹配）
-        self.norm = nn.LayerNorm(output_dim) if (input_dim == output_dim) else None
+        self.norm = nn.LayerNorm(output_dim, dtype=torch.float64) if (input_dim == output_dim) else None
 
     def forward(self, x):
         residual = x if (self.norm is not None) else 0
