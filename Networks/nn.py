@@ -205,3 +205,62 @@ class NN_pricing_GLU(nn.Module):
         return x
 
 
+# %%
+class SwiGLUBlock(nn.Module):
+    """SwiGLU块: 使用Swish函数作为门控激活"""
+    def __init__(self, input_dim, output_dim, beta=1.0):
+        super().__init__()
+        # 投影变换 (值路径)
+        self.projection = nn.Linear(input_dim, output_dim)
+        # 门控变换 (门路径) - 注意: 这里没有内置激活函数
+        self.gate = nn.Linear(input_dim, output_dim)
+        # Swish函数的beta参数，可学习或固定
+        self.beta = beta
+        # 可选的层归一化，提升训练稳定性
+        self.norm = nn.LayerNorm(output_dim) if input_dim == output_dim else None
+
+    def swish(self, x):
+        """Swish激活函数: x * sigmoid(beta * x)"""
+        return x * torch.sigmoid(self.beta * x)
+
+    def forward(self, x):
+        residual = x if (self.norm is not None) else 0
+        # 计算值投影和门控投影
+        value = self.projection(x)
+        gate = self.gate(x) # 注意: Swish函数在forward中应用
+        # 应用SwiGLU: 值 * Swish(门)
+        gated_value = value * self.swish(gate)
+        # 可选: 应用层归一化
+        if self.norm is not None:
+            gated_value = self.norm(gated_value)
+        # 残差连接（如果维度匹配）
+        return gated_value + residual
+
+
+class NN_pricing_SwiGLU(nn.Module):
+    """基于SwiGLU的定价网络"""
+    def __init__(self, hyperparams):
+        super().__init__()
+        input_dim = hyperparams['input_dim']
+        hidden_dim = hyperparams['hidden_dim']
+        hidden_nums = hyperparams['hidden_nums']
+        output_dim = hyperparams['output_dim']
+        # 可选的SwiGLU beta参数
+        swiglu_beta = hyperparams.get('swiglu_beta', 1.0)
+
+        self.layer_lst = nn.ModuleList()
+        # 输入层
+        self.layer_lst.append(SwiGLUBlock(input_dim, hidden_dim, beta=swiglu_beta))
+        # 隐藏层
+        for _ in range(hidden_nums - 1):
+            self.layer_lst.append(SwiGLUBlock(hidden_dim, hidden_dim, beta=swiglu_beta))
+        # 输出层
+        self.output_layer = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        for layer in self.layer_lst:
+            x = layer(x)
+        return self.output_layer(x)
+    
+
+    
