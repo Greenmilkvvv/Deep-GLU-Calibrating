@@ -214,9 +214,9 @@ class SwiGLUBlock(nn.Module):
         self.projection = nn.Linear(input_dim, output_dim)
         # 门控变换 (门路径) - 注意: 这里没有内置激活函数
         self.gate = nn.Linear(input_dim, output_dim)
-        # Swish函数的beta参数，可学习或固定
+        # Swish函数的beta参数, 可学习或固定
         self.beta = beta
-        # 可选的层归一化，提升训练稳定性
+        # 可选的层归一化, 提升训练稳定性
         self.norm = nn.LayerNorm(output_dim) if input_dim == output_dim else None
 
     def swish(self, x):
@@ -263,4 +263,90 @@ class NN_pricing_SwiGLU(nn.Module):
         return self.output_layer(x)
     
 
+# %%
+# Masked Gated Linear Unit
+
+class MGLU(nn.Linear):
+    """论文原版MGLU, 一个高效的线性投影拆分器. """
+    def __init__(self, in_features, out_features):
+        # 注意: 这里bias=False, 因为门控和值流通常不需要独立的偏置, 或者后续统一加. 
+        super(MGLU, self).__init__(in_features, out_features, False)
+        self.register_parameter(
+            "mask", nn.Parameter(0.01 * torch.randn(out_features, in_features), requires_grad=True)
+        )
+
+    def ste_mask(self, soft_mask):
+        """直通估计器: 前向二值化, 反向传播软掩码梯度. """
+        hard_mask = (soft_mask > 0).to(soft_mask.dtype)
+        # 这是STE的核心: 前向用hard_mask, 反向用soft_mask的梯度
+        hard_mask = (hard_mask - soft_mask).detach() + soft_mask
+        return hard_mask
+
+    def forward(self, x):
+        hard_mask = self.ste_mask(self.mask)
+        # 计算互补的两路投影 e1, e2
+        e1 = F.linear(x, self.weight * hard_mask)
+        e2 = F.linear(x, self.weight * (1.0 - hard_mask))
+        return e1, e2
+
+
+class MGLUBlock(nn.Module):
+    """完整的MGLU门控块, 可替换SwiGLUBlock. """
+    def __init__(self, input_dim, output_dim, use_swish=True):
+        super().__init__()
+        # 核心: MGLU投影拆分器
+        self.mglu_projection = MGLU(input_dim, output_dim)
+        # 可选的偏置（也可不加, 或让MGLU支持bias）
+        self.bias = nn.Parameter(torch.zeros(output_dim)) if True else None
+        # 门控激活函数, 默认使用Swish
+        self.gate_activation = lambda g: g * torch.sigmoid(g) if use_swish else torch.sigmoid(g)
+        # 层归一化, 用于稳定训练（如果做残差连接, 维度需匹配）
+        self.norm = nn.LayerNorm(output_dim) if (input_dim == output_dim) else None
+
+    def forward(self, x):
+        residual = x if (self.norm is not None) else 0
+
+        # 1. 通过MGLU得到互补的两路投影 e1, e2
+        e1, e2 = self.mglu_projection(x)
+
+        # 2. 定义哪一路做“门”（需激活）, 哪一路做“值”
+        #    论文中未明确, 这是你的设计选择. 一种常见设定是让e1做门, e2做值. 
+        gate = self.gate_activation(e1)  # 对门控流应用Swish激活
+        value = e2                      # 值流保持线性
+
+        # 3. 门控相乘并加上偏置
+        output = gate * value
+        if self.bias is not None:
+            output = output + self.bias
+
+        # 4. 可选的层归一化和残差连接
+        if self.norm is not None:
+            output = self.norm(output)
+        return output + residual
+
+
+class NN_pricing_SwiGLU(nn.Module):
+    """基于MGLU的定价网络"""
+    def __init__(self, hyperparams):
+        super().__init__()
+        input_dim = hyperparams['input_dim']
+        hidden_dim = hyperparams['hidden_dim']
+        hidden_nums = hyperparams['hidden_nums']
+        output_dim = hyperparams['output_dim']
+        # 可选的SwiGLU beta参数
+        swiglu_beta = hyperparams.get('swiglu_beta', 1.0)
+
+        self.layer_lst = nn.ModuleList()
+        # 输入层
+        self.layer_lst.append(MGLUBlock(input_dim, hidden_dim, use_swish=True))
+        # 隐藏层
+        for _ in range(hidden_nums - 1):
+            self.layer_lst.append(MGLUBlock(hidden_dim, hidden_dim, use_swish=True))
+        # 输出层
+        self.output_layer = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        for layer in self.layer_lst:
+            x = layer(x)
+        return self.output_layer(x)
     
