@@ -103,11 +103,6 @@ def ImpVol_surface_3d(
 
 
 # %%
-# from sklearn.model_selection import train_test_split
-# from sklearn.preprocessing import StandardScaler
-
-# scale_x, scale_y = StandardScaler(), StandardScaler() 
-
 # 工具函数——数据标准化
 def x_transform(train_data, test_data, scale_x): 
     return scale_x.fit_transform(train_data), scale_x.transform(test_data)
@@ -132,4 +127,71 @@ def params_scaler(x, upper_bound, lower_bound):
 def params_inv_scaler(x, upper_bound, lower_bound):
     return x * (upper_bound-lower_bound) / 2 + (upper_bound+lower_bound) / 2
 
+
+# %%
+# 数据集划分
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+def get_transform_train_test_data(xx, yy, upper_bound, lower_bound, test_size=0.15):
+    # 分割数据集
+    x_train, x_test, y_train, y_test = train_test_split( 
+        xx, yy, 
+        test_size = test_size, 
+        random_state = 42
+    )
+
+    # 构建标准化的 train test data
+    scale_x, scale_y = StandardScaler(), StandardScaler() 
+
+    x_train_transform = params_scaler(x_train, upper_bound, lower_bound) 
+    x_test_transform = params_scaler(x_test, upper_bound, lower_bound)
+
+    y_train_transform, y_test_transform = y_transform(y_train, y_test, scale_y)
+
+    return x_train_transform, y_train_transform, x_test_transform, y_test_transform
+
+
+def get_torch_train_test_data(x_train_transform, y_train_transform, x_test_transform, y_test_transform, device = 'cuda'): 
+
+    # 查找 GPU 
+    if device == 'cuda':
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        device = torch.device(device)
+
+    else: 
+        device = torch.device('cpu')
+
+    print(f"使用设备: {device}")
+
+
+    train_dataset = torch.utils.data.TensorDataset( 
+        torch.from_numpy(x_train_transform).to(device=device),
+        torch.from_numpy(y_train_transform).to(device=device)
+    )
+
+    # test_dataset = torch.utils.data.TensorDataset( 
+    #     torch.from_numpy(x_test_transform).to(device=device),
+    #     torch.from_numpy(y_test_transform).to(device=device)
+    # )
+
+    train_data = (torch.from_numpy(x_train_transform).to(device=device),torch.from_numpy(y_train_transform).to(device=device))
+
+    test_data = (torch.from_numpy(x_test_transform).to(device=device),torch.from_numpy(y_test_transform).to(device=device))
+
+
+    data_loader = torch.utils.data.DataLoader( 
+        train_dataset, batch_size=32, shuffle=True
+    )
+
+    return data_loader, train_data, test_data
+
+
+def get_dataset_for_train(xx, yy, upper_bound, lower_bound, test_size=0.15, device = 'cuda'): 
+
+    x_train_transform, y_train_transform, x_test_transform, y_test_transform = get_transform_train_test_data(xx, yy, upper_bound, lower_bound, test_size)
+
+    data_loader, train_data, test_data = get_torch_train_test_data(x_train_transform, y_train_transform, x_test_transform, y_test_transform, device = device)
+
+    return data_loader, train_data, test_data
 
