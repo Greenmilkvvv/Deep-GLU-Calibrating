@@ -11,7 +11,7 @@ from Pricing.rBergomi.rBergomi_utils import *
 
 
 # %%
-def calibrate_with_scipy(CostFunc, x_test_transform, show_res_num=3):
+def calibrate_with_scipy(CostFunc, x_test_transform, upper_bound, lower_bound, show_res_num=3):
     """
     使用 SciPy 的优化器进行参数校准
 
@@ -35,19 +35,19 @@ def calibrate_with_scipy(CostFunc, x_test_transform, show_res_num=3):
         start= time.time()
         I=scipy.optimize.minimize(CostFunc,x0=init,args=i,method='L-BFGS-B',tol=1E-10,options={"maxiter":10000})
         end= time.time()
-        solutions[0,:]=params_inv_scaler(I.x)
+        solutions[0,:]=params_inv_scaler(I.x, upper_bound, lower_bound)
         times[0]=end-start
         #SLSQP
         start= time.time()
         I=scipy.optimize.minimize(CostFunc,x0=init,args=i,method='SLSQP',tol=1E-10,options={"maxiter":10000})
         end= time.time()
-        solutions[1,:]=params_inv_scaler(I.x)
+        solutions[1,:]=params_inv_scaler(I.x, upper_bound, lower_bound)
         times[1]=end-start
         #BFGS
         start= time.time()
         I=scipy.optimize.minimize(CostFunc,x0=init,args=i,method='BFGS',tol=1E-10,options={"maxiter":10000})
         end= time.time()
-        solutions[2,:]=params_inv_scaler(I.x)
+        solutions[2,:]=params_inv_scaler(I.x, upper_bound, lower_bound)
         times[2]=end-start
         
         Approx_scipy.append(np.copy(solutions))

@@ -133,6 +133,17 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 def get_transform_train_test_data(xx, yy, upper_bound, lower_bound, test_size=0.15):
+    """
+    获取训练集和测试集
+    Args:
+        xx (np.ndarray): 参数
+        yy (np.ndarray): 隐含波动率曲面
+        upper_bound (np.ndarray): 参数上界
+        lower_bound (np.ndarray): 参数下界
+        test_size (float, optional): 测试集比例. Defaults to 0.15.
+    Returns:
+        x_train_transform, y_train_transform, x_test_transform, y_test_transform
+    """
     # 分割数据集
     x_train, x_test, y_train, y_test = train_test_split( 
         xx, yy, 
@@ -152,6 +163,17 @@ def get_transform_train_test_data(xx, yy, upper_bound, lower_bound, test_size=0.
 
 
 def get_torch_train_test_data(x_train_transform, y_train_transform, x_test_transform, y_test_transform, device = 'cuda'): 
+    """
+    将数据集转换为 torch tensor 并加载到 GPU 上
+    Args:
+        x_train_transform (np.ndarray): 标准化的训练集参数
+        y_train_transform (np.ndarray): 标准化的训练集隐含波动率曲面
+        x_test_transform (np.ndarray): 标准化的测试集参数
+        y_test_transform (np.ndarray): 标准化的测试集隐含波动率曲面
+        device (str, optional): 设备. Defaults to 'cuda'.
+    Returns:
+        data_loader, train_data, test_data
+    """
 
     # 查找 GPU 
     if device == 'cuda':
@@ -187,6 +209,18 @@ def get_torch_train_test_data(x_train_transform, y_train_transform, x_test_trans
 
 
 def get_dataset_for_train(xx, yy, upper_bound, lower_bound, test_size=0.15, device = 'cuda'): 
+    """ 
+    获取训练集和测试集
+    Args:
+        xx (np.ndarray): 参数
+        yy (np.ndarray): 隐含波动率曲面
+        upper_bound (np.ndarray): 参数上界
+        lower_bound (np.ndarray): 参数下界
+        test_size (float, optional): 测试集比例. Defaults to 0.15.
+        device (str, optional): 设备. Defaults to 'cuda'.
+    Returns:
+        data_loader, train_data, test_data
+    """
 
     x_train_transform, y_train_transform, x_test_transform, y_test_transform = get_transform_train_test_data(xx, yy, upper_bound, lower_bound, test_size)
 
