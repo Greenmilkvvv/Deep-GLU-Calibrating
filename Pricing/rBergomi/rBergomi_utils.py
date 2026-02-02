@@ -103,12 +103,10 @@ def ImpVol_surface_3d(
 
 
 # %%
-import torch
-import torch.nn as nn
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-# scale_x, scale_y = StandardScaler(), StandardScaler() 
+scale_x, scale_y = StandardScaler(), StandardScaler() 
 
 # 工具函数——数据标准化
 def x_transform(train_data, test_data, scale_x): 
