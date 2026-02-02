@@ -128,7 +128,6 @@ def params_inv_scaler(x, upper_bound, lower_bound):
     return x * (upper_bound-lower_bound) / 2 + (upper_bound+lower_bound) / 2
 
 
-# %%
 # 数据集划分
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -194,4 +193,5 @@ def get_dataset_for_train(xx, yy, upper_bound, lower_bound, test_size=0.15, devi
     data_loader, train_data, test_data = get_torch_train_test_data(x_train_transform, y_train_transform, x_test_transform, y_test_transform, device = device)
 
     return data_loader, train_data, test_data
+
 
