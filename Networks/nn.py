@@ -291,7 +291,7 @@ class MGLU(nn.Linear):
 
 
 class MGLUBlock(nn.Module):
-    """完整的MGLU门控块, 可替换SwiGLUBlock. """
+    """MGLU门控块"""
     def __init__(self, input_dim, output_dim, use_swish=True):
         super().__init__()
         # 核心: MGLU投影拆分器
@@ -310,7 +310,7 @@ class MGLUBlock(nn.Module):
         e1, e2 = self.mglu_projection(x)
 
         # 2. 定义哪一路做“门”（需激活）, 哪一路做“值”
-        #    论文中未明确, 这是你的设计选择. 一种常见设定是让e1做门, e2做值. 
+        #    论文中未明确, 这是设计选择. 一种常见设定是让e1做门, e2做值. 
         gate = self.gate_activation(e1)  # 对门控流应用Swish激活
         value = e2                      # 值流保持线性
 
