@@ -67,7 +67,7 @@ def train_epoch(loss_function, optimizer, model, loader, train_data, test_data, 
 
 
 # %%
-def train_model(loss_function, optimizer, model, loader, train_data, test_data, epochs=25, test = True):
+def train_model(loss_function, optimizer, model, loader, train_data, test_data, save_path = None, epochs=25, test = True):
     """ 
     训练模型
 
@@ -112,16 +112,20 @@ def train_model(loss_function, optimizer, model, loader, train_data, test_data, 
             plt.plot( 
                 list( range(1, len(train_loss_lst)+1) ), 
                 train_loss_lst,
-                label = 'Train Loss'
+                label = '训练损失'
             )
             plt.plot( 
                 list( range(1, len(test_loss_lst)+1) ),
                 test_loss_lst,
-                label = 'Test Loss'
+                label = '验证损失'
             )
-            plt.xlabel('Epoch')
-            plt.ylabel('Mean Loss')
+            plt.xlabel('训练轮次')
+            plt.ylabel('平均损失')
             plt.legend()
+
+            if save_path is not None and epoch == epochs-1:   
+                plt.savefig(save_path, dpi = 300, bbox_inches = 'tight')
+
             plt.show()
 
     return train_loss_lst, test_loss_lst
